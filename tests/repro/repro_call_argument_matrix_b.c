@@ -1,5 +1,5 @@
 /*
- * Exhaustive call-argument reproduction matrix, CBMLanguage 80..164.
+ * Exhaustive call-argument reproduction matrix, CBMLanguage 80..165.
  *
  * Every language in this numeric range whose live spec has call-node metadata
  * owns one TEST row below. Semantic applications are exercised twice: once as
@@ -861,6 +861,16 @@ static const char CHIALISP_BARE[] = "(\n"
                                     "  (defun run (watched) watched)\n"
                                     ")\n";
 
+/* Harbour: FUNCTION bodies run to the next routine header (no end marker), so
+ * the fixture also pins that `Run` does not swallow `Accept`'s scope. */
+static const char HARBOUR_INSIDE[] = "FUNCTION Accept( value )\n"
+                                     "   RETURN value\n"
+                                     "\n"
+                                     "FUNCTION Run( watched )\n"
+                                     "   RETURN Accept( watched )\n";
+static const char HARBOUR_BARE[] = "FUNCTION Run( watched )\n"
+                                   "   RETURN watched\n";
+
 static const char PLSQL_INSIDE[] = "CREATE OR REPLACE PACKAGE BODY sample_pkg AS\n"
                                    "  FUNCTION accept(value NUMBER) RETURN NUMBER IS\n"
                                    "  BEGIN\n"
@@ -1030,6 +1040,9 @@ static const RoutineArgumentCase PLSQL_CASE = ROUTINE_ARGUMENT_CASE(
 static const RoutineArgumentCase CHIALISP_CASE = ROUTINE_ARGUMENT_CASE(
     "CHIALISP", CBM_LANG_CHIALISP, "sample.clib", CHIALISP_INSIDE, CHIALISP_BARE, "list", "run",
     "accept", "watched", 1, 1, 0, "Chialisp list application and symbol-reference vocabulary");
+static const RoutineArgumentCase HARBOUR_CASE = ROUTINE_ARGUMENT_CASE(
+    "HARBOUR", CBM_LANG_HARBOUR, "sample.prg", HARBOUR_INSIDE, HARBOUR_BARE, "call_expression",
+    "Run", "Accept", "watched", 1, 1, 0, "Harbour FUNCTION call with a parameter argument");
 
 static const ModuleArgumentCase JUST_CASE = MODULE_ARGUMENT_CASE(
     "JUST", CBM_LANG_JUST, "justfile", JUST_INSIDE, JUST_BARE, "function_call", "uppercase",
@@ -1223,6 +1236,7 @@ DEFINE_ROUTINE_ARGUMENT_TEST(objectscript_udl, OBJECTSCRIPT_UDL_CASE)
 DEFINE_ROUTINE_ARGUMENT_TEST(objectscript_routine, OBJECTSCRIPT_ROUTINE_CASE)
 DEFINE_ROUTINE_ARGUMENT_TEST(plsql, PLSQL_CASE)
 DEFINE_ROUTINE_ARGUMENT_TEST(chialisp, CHIALISP_CASE)
+DEFINE_ROUTINE_ARGUMENT_TEST(harbour, HARBOUR_CASE)
 
 #undef DEFINE_ROUTINE_ARGUMENT_TEST
 
@@ -1292,15 +1306,15 @@ TEST(repro_call_argument_matrix_b_domain_bitbake) {
 }
 
 enum {
-    ROUTINE_ARGUMENT_LANGUAGE_COUNT = 39,
+    ROUTINE_ARGUMENT_LANGUAGE_COUNT = 40,
     MODULE_ARGUMENT_LANGUAGE_COUNT = 4,
     DOMAIN_CONTROL_LANGUAGE_COUNT = 6,
     MATRIX_LANGUAGE_COUNT = ROUTINE_ARGUMENT_LANGUAGE_COUNT + MODULE_ARGUMENT_LANGUAGE_COUNT +
                             DOMAIN_CONTROL_LANGUAGE_COUNT,
 };
 
-_Static_assert(MATRIX_LANGUAGE_COUNT == 49,
-               "RACKET..CHIALISP call-capable matrix must contain exactly 49 "
+_Static_assert(MATRIX_LANGUAGE_COUNT == 50,
+               "RACKET..HARBOUR call-capable matrix must contain exactly 50 "
                "language rows");
 
 #define MATRIX_B_LANGUAGE_ROWS(X)                                                               \
@@ -1345,6 +1359,7 @@ _Static_assert(MATRIX_LANGUAGE_COUNT == 49,
       OBJECTSCRIPT_ROUTINE_CASE.identity.language)                                              \
     X(repro_call_argument_matrix_b_routine_plsql, PLSQL_CASE.identity.language)                 \
     X(repro_call_argument_matrix_b_routine_chialisp, CHIALISP_CASE.identity.language)           \
+    X(repro_call_argument_matrix_b_routine_harbour, HARBOUR_CASE.identity.language)             \
     X(repro_call_argument_matrix_b_module_just, JUST_CASE.identity.language)                    \
     X(repro_call_argument_matrix_b_module_gotemplate, GOTEMPLATE_CASE.identity.language)        \
     X(repro_call_argument_matrix_b_module_linkerscript, LINKERSCRIPT_CASE.identity.language)    \

@@ -968,6 +968,64 @@ static char *extract_plsql_callee(CBMArena *a, TSNode node, const char *source, 
     return cbm_node_text(a, ref, source);
 }
 
+/* Harbour: one of three call shapes.
+ *   call_expression  Foo( x )          -> "Foo"
+ *   do_statement     DO Foo WITH x     -> "Foo"
+ *   method_call      oGet:display()    -> "oGet.display"
+ *                    ::display() / Self:display() / ::Super:New() -> bare name:
+ *                    the receiver is the current object, whose methods the
+ *                    registry files under the bare name; a "Self." prefix would
+ *                    only trip the upper-case receiver guard.
+ *                    Get():New() / a[1]:x() -> bare name: the receiver is an
+ *                    expression, not a name a chain could be built from.
+ * A macro callee (&cFunc(), DO &cProc) names nothing statically: NULL. */
+static bool harbour_is_self_receiver(const char *text) {
+    static const char *const selves[] = {"self", "super", "qself", NULL};
+    for (const char *const *w = selves; *w; w++) {
+        const char *x = text;
+        const char *y = *w;
+        while (*x && *y && (char)((*x >= 'A' && *x <= 'Z') ? *x + ('a' - 'A') : *x) == *y) {
+            x++;
+            y++;
+        }
+        if (!*x && !*y) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static char *extract_harbour_callee(CBMArena *a, TSNode node, const char *source) {
+    const char *nk = ts_node_type(node);
+    if (strcmp(nk, "call_expression") == 0 || strcmp(nk, "do_statement") == 0) {
+        TSNode fn = ts_node_child_by_field_name(node, TS_FIELD("function"));
+        if (ts_node_is_null(fn) || strcmp(ts_node_type(fn), "identifier") != 0) {
+            return NULL;
+        }
+        return cbm_node_text(a, fn, source);
+    }
+    if (strcmp(nk, "method_call") != 0) {
+        return NULL;
+    }
+    TSNode name = ts_node_child_by_field_name(node, TS_FIELD("name"));
+    if (ts_node_is_null(name) || strcmp(ts_node_type(name), "identifier") != 0) {
+        return NULL;
+    }
+    char *msg = cbm_node_text(a, name, source);
+    if (!msg || !msg[0]) {
+        return NULL;
+    }
+    TSNode obj = ts_node_child_by_field_name(node, TS_FIELD("object"));
+    if (ts_node_is_null(obj) || strcmp(ts_node_type(obj), "identifier") != 0) {
+        return msg;
+    }
+    char *recv = cbm_node_text(a, obj, source);
+    if (!recv || !recv[0] || harbour_is_self_receiver(recv)) {
+        return msg;
+    }
+    return cbm_arena_sprintf(a, "%s.%s", recv, msg);
+}
+
 // Solidity: a call_expression's callee is on the `function` field, wrapped in an
 // `expression` node (call_expression -> function:expression -> identifier). Descend
 // left-most through expression wrappers until we reach the identifier/member.
@@ -1875,6 +1933,12 @@ static char *extract_callee_name(CBMArena *a, TSNode node, const char *source, C
      * generic fallback would happily emit). NULL here means "not a call". */
     if (lang == CBM_LANG_PKL) {
         return extract_pkl_callee(a, node, source, ts_node_type(node));
+    }
+
+    /* Harbour: resolved in one place and returned unconditionally — the generic
+     * `object`+`name` path would spell `::Super:New()` as "::Super.New". */
+    if (lang == CBM_LANG_HARBOUR) {
+        return extract_harbour_callee(a, node, source);
     }
 
     // Helm / Go templates: resolve `include "x"` / `template "x"` to the

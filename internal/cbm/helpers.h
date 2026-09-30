@@ -119,6 +119,13 @@ TSNode cbm_resolve_func_name(TSNode node, CBMLanguage lang);
 // def extractor — drift dropped the class qualifier from in-body calls (#554/#621).
 char *cbm_cpp_out_of_line_parent_class(CBMArena *a, TSNode node, const char *source);
 
+// Harbour: the class a routine implements a method of — `METHOD x() CLASS Y`,
+// `METHOD Y:x()`, `PROCEDURE x() CLASS Y`, or for a bare `METHOD x()` the nearest
+// class declared above it. NULL for a plain FUNCTION/PROCEDURE. Defined in
+// extract_defs.c and shared with the unified walk for the same reason as the C++
+// helper above: the def QN and the call-scope QN must be the same string.
+char *cbm_harbour_method_owner(CBMArena *a, TSNode node, const char *source);
+
 // Find a child node by kind string.
 TSNode cbm_find_child_by_kind(TSNode parent, const char *kind);
 

@@ -188,6 +188,7 @@ typedef enum {
     CBM_LANG_ARKTS,    // ArkTS (HarmonyOS/OpenHarmony .ets — TypeScript superset + ArkUI)
     CBM_LANG_PLSQL,    // Oracle PL/SQL
     CBM_LANG_CHIALISP, // Chialisp (.clsp/.clib/.clinc — Chia smart-coin s-expression language)
+    CBM_LANG_HARBOUR,  // Harbour / Clipper xBase (.prg/.ch/.hb/.hbs)
     CBM_LANG_COUNT
 } CBMLanguage;
 

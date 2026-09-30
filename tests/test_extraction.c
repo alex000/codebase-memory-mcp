@@ -1516,6 +1516,166 @@ TEST(plsql_create_type_as_object_limitation) {
     PASS();
 }
 
+/* --- Harbour ---
+ *
+ * First-party grammar (tools/tree-sitter-harbour). The shapes below are the ones
+ * the extractor depends on and that no other language shares: routine bodies
+ * with no end marker, methods implemented outside their class, case-insensitive
+ * names, and preprocessor conditionals whose branches each open a block. */
+static const CBMDefinition *harbour_def(CBMFileResult *r, const char *label, const char *name) {
+    for (int i = 0; i < r->defs.count; i++) {
+        if (strcmp(r->defs.items[i].label, label) == 0 && strcmp(r->defs.items[i].name, name) == 0)
+            return &r->defs.items[i];
+    }
+    return NULL;
+}
+
+static int harbour_ends_with(const char *s, const char *suffix) {
+    if (!s || !suffix)
+        return 0;
+    size_t n = strlen(s), m = strlen(suffix);
+    return n >= m && strcmp(s + n - m, suffix) == 0;
+}
+
+TEST(harbour_routines_and_calls) {
+    const char *src = "#include \"hbclass.ch\"\n"
+                      "#define MAX_ITEMS 100\n"
+                      "\n"
+                      "STATIC s_nCount := 0, s_cName\n"
+                      "\n"
+                      "PROCEDURE Main( cArg )\n"
+                      "   LOCAL oGet := Get():New( 1, 2 )\n"
+                      "   IF Empty( cArg )\n"
+                      "      DO Report WITH cArg\n"
+                      "   ENDIF\n"
+                      "   oGet:display()\n"
+                      "   USE (cFile) ALIAS cust NEW\n"
+                      "   RETURN\n"
+                      "\n"
+                      "STATIC FUNCTION Report( c )\n"
+                      "   STATIC nCalls := 0\n"
+                      "   RETURN Upper( c )\n"
+                      "\n"
+                      "func lower_abbrev()\n"
+                      "   retu &cMacro( 1 )";
+    CBMFileResult *r = extract(src, CBM_LANG_HARBOUR, "t", "src/app.prg");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    ASSERT(has_def(r, "Function", "Main"));
+    ASSERT(has_def(r, "Function", "Report"));
+    /* Abbreviated, lower-case keywords; last line has no trailing newline. */
+    ASSERT(has_def(r, "Function", "lower_abbrev"));
+    /* File-scope STATICs are module variables; the one inside Report is not. */
+    ASSERT(has_def(r, "Variable", "s_nCount"));
+    ASSERT(has_def(r, "Variable", "s_cName"));
+    ASSERT(!has_def_any(r, "nCalls"));
+    ASSERT(has_import(r, "hbclass.ch"));
+    /* Calls, DO ... WITH, and sends to a named receiver. */
+    ASSERT_EQ(count_calls_named(r, "Empty"), 1);
+    ASSERT_EQ(count_calls_named(r, "Report"), 1);
+    ASSERT_EQ(count_calls_named(r, "oGet.display"), 1);
+    ASSERT_EQ(count_calls_named(r, "Get"), 1);
+    /* `STATIC FUNCTION` closes Main's body: Upper() belongs to Report. */
+    ASSERT_EQ(count_calls_in_func(r, "Upper", "Report"), 1);
+    ASSERT_EQ(count_calls_in_func(r, "Report", "Main"), 1);
+    /* A macro call names nothing statically; a command is not a call. */
+    ASSERT(!has_call(r, "cMacro"));
+    ASSERT(!has_call(r, "USE"));
+    cbm_free_result(r);
+    PASS();
+}
+
+TEST(harbour_class_methods_and_fields) {
+    const char *src = "CREATE CLASS TFoo INHERIT TBar, TBaz\n"
+                      "   EXPORTED:\n"
+                      "   VAR nX INIT 0\n"
+                      "   DATA cName, cTitle\n"
+                      "   METHOD New( nX ) CONSTRUCTOR\n"
+                      "   METHOD Show()\n"
+                      "ENDCLASS\n"
+                      "\n"
+                      "METHOD New( nX ) CLASS TFOO\n"
+                      "   ::nX := nX\n"
+                      "   ::Super:New()\n"
+                      "   ::Show()\n"
+                      "   RETURN Self\n"
+                      "\n"
+                      "METHOD Show()\n"
+                      "   RETURN Self:end()\n";
+    CBMFileResult *r = extract(src, CBM_LANG_HARBOUR, "t", "tfoo.prg");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    const CBMDefinition *cls = harbour_def(r, "Class", "TFoo");
+    ASSERT_NOT_NULL(cls);
+    ASSERT_NOT_NULL(cls->base_classes);
+    ASSERT_STR_EQ(cls->base_classes[0], "TBar");
+    ASSERT_STR_EQ(cls->base_classes[1], "TBaz");
+    ASSERT(cls->base_classes[2] == NULL);
+    /* Every name of a multi-name VAR/DATA line is a Field. */
+    ASSERT(has_def(r, "Field", "nX"));
+    ASSERT(has_def(r, "Field", "cName"));
+    ASSERT(has_def(r, "Field", "cTitle"));
+    /* The in-class METHOD lines are declarations; the file-scope
+     * implementations are the Methods — one each, owned by TFoo. `CLASS TFOO`
+     * is matched case-insensitively and takes the declared spelling, and a
+     * bare `METHOD Show()` belongs to the class declared above it. */
+    ASSERT_EQ(count_defs_named(r, "Method", "New"), 1);
+    ASSERT_EQ(count_defs_named(r, "Method", "Show"), 1);
+    ASSERT_EQ(count_defs_with_label(r, "Function"), 0);
+    const CBMDefinition *m = harbour_def(r, "Method", "New");
+    ASSERT_NOT_NULL(m);
+    ASSERT(harbour_ends_with(m->qualified_name, ".TFoo.New"));
+    ASSERT(harbour_ends_with(m->parent_class, ".TFoo"));
+    ASSERT(harbour_ends_with(harbour_def(r, "Method", "Show")->parent_class, ".TFoo"));
+    /* Sends to Self / Super / :: resolve as the bare message, and the call
+     * scope is the method's class-qualified QN. */
+    ASSERT_EQ(count_calls_in_func(r, "New", "TFoo.New"), 1);
+    ASSERT_EQ(count_calls_in_func(r, "Show", "TFoo.New"), 1);
+    ASSERT_EQ(count_calls_in_func(r, "end", "TFoo.Show"), 1);
+    ASSERT(!has_call(r, "::"));
+    ASSERT(!has_call(r, "Self."));
+    cbm_free_result(r);
+    PASS();
+}
+
+TEST(harbour_ifdef_branches_do_not_unbalance_the_file) {
+    /* Each branch opens the same IF, closed once after #endif. Parsing both
+     * branches leaves one IF unclosed and swallows every routine below it. */
+    const char *src = "FUNCTION First( a, b )\n"
+                      "#ifdef __XHARBOUR__\n"
+                      "   IF a .OR. ;\n"
+                      "      b\n"
+                      "#else\n"
+                      "   IF b\n"
+                      "#endif\n"
+                      "      Foo()\n"
+                      "   ENDIF\n"
+                      "#if 0\n"
+                      "   this is not Harbour (\n"
+                      "#endif\n"
+                      "   RETURN NIL\n"
+                      "\n"
+                      "#pragma BEGINDUMP\n"
+                      "#include <hbapi.h>\n"
+                      "HB_FUNC( CFUNC ) { hb_retni( 1 ); }\n"
+                      "#pragma ENDDUMP\n"
+                      "\n"
+                      "FUNCTION Second()\n"
+                      "   RETURN First( 1, 2 )\n";
+    CBMFileResult *r = extract(src, CBM_LANG_HARBOUR, "t", "c.prg");
+    ASSERT_NOT_NULL(r);
+    ASSERT_FALSE(r->has_error);
+    ASSERT(has_def(r, "Function", "First"));
+    ASSERT(has_def(r, "Function", "Second"));
+    ASSERT_EQ(count_calls_in_func(r, "Foo", "First"), 1);
+    ASSERT_EQ(count_calls_in_func(r, "First", "Second"), 1);
+    /* Inline C inside BEGINDUMP is not Harbour: no HB_FUNC call, no import. */
+    ASSERT(!has_call(r, "HB_FUNC"));
+    ASSERT(!has_import(r, "hbapi.h"));
+    cbm_free_result(r);
+    PASS();
+}
+
 /* --- Chialisp ---
  *
  * Three defects in the only public Chialisp grammar
@@ -8843,6 +9003,9 @@ SUITE(extraction) {
     RUN_TEST(plsql_package_and_call);
     RUN_TEST(plsql_standalone_function);
     RUN_TEST(plsql_create_type_as_object_limitation);
+    RUN_TEST(harbour_routines_and_calls);
+    RUN_TEST(harbour_class_methods_and_fields);
+    RUN_TEST(harbour_ifdef_branches_do_not_unbalance_the_file);
     RUN_TEST(chialisp_puzzle_defs_and_labels);
     RUN_TEST(chialisp_comment_line_endings);
     RUN_TEST(chialisp_library_defs_and_quoted_data);

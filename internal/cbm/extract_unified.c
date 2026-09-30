@@ -1087,6 +1087,16 @@ static const char *compute_func_qn(CBMExtractCtx *ctx, TSNode node, const CBMLan
         }
     }
 
+    /* Harbour `METHOD x() CLASS Y`: the def extractor records Method
+     * "proj.file.Y.x"; qualify the call scope identically (see the C++ case). */
+    if (ctx->language == CBM_LANG_HARBOUR) {
+        char *owner = cbm_harbour_method_owner(ctx->arena, node, ctx->source);
+        if (owner && owner[0]) {
+            const char *class_qn = cbm_fqn_compute(ctx->arena, ctx->project, ctx->rel_path, owner);
+            return cbm_arena_sprintf(ctx->arena, "%s.%s", class_qn, name);
+        }
+    }
+
     /* Nix: a binding's own attrpath contributes scope (`a.b.fn = …`), and the def
      * extractor bakes it into the def QN. Compose it identically here — otherwise
      * an in-body call sources to a QN one or more segments short of the def, and

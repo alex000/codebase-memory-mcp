@@ -1,0 +1,137 @@
+================================================================================
+hbclass class declaration
+================================================================================
+
+CREATE CLASS TFoo INHERIT TBar, TBaz
+   EXPORTED:
+   VAR nX INIT 0 READONLY
+   DATA cName, cTitle
+   CLASSVAR nCount
+   METHOD New( nX ) CONSTRUCTOR
+   METHOD GetX() INLINE ::nX
+   ACCESS end METHOD getEnd()
+   ERROR HANDLER OnError( xValue )
+ENDCLASS
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_definition
+    (identifier)
+    (superclass_list
+      (identifier)
+      (identifier))
+    (class_body
+      (access_specifier
+        (identifier))
+      (class_var_declaration
+        (identifier)
+        (identifier)
+        (number)
+        (identifier))
+      (class_var_declaration
+        (identifier)
+        (identifier))
+      (class_var_declaration
+        (identifier))
+      (method_declaration
+        (identifier)
+        (parameters
+          (parameter
+            (identifier)))
+        (identifier))
+      (method_declaration
+        (identifier)
+        (parameters)
+        (identifier)
+        (self_send
+          (self_reference)
+          (identifier)))
+      (method_declaration
+        (identifier)
+        (identifier)
+        (call_expression
+          (identifier)
+          (argument_list)))
+      (class_member_statement
+        (identifier)
+        (identifier)
+        (call_expression
+          (identifier)
+          (argument_list
+            (identifier)))))))
+
+================================================================================
+Method implementations
+================================================================================
+
+METHOD New( nX ) CLASS TFoo
+   ::nX := nX
+   ::Super:New()
+   RETURN Self
+
+METHOD TFoo:Show()
+   RETURN ::end()
+
+PROCEDURE Dtor() CLASS TFoo
+   RETURN
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (method_definition
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)))
+    (identifier)
+    (block
+      (expression_statement
+        (assignment_expression
+          (self_send
+            (self_reference)
+            (identifier))
+          (identifier)))
+      (expression_statement
+        (method_call
+          (self_send
+            (self_reference)
+            (identifier))
+          (identifier)
+          (argument_list)))
+      (return_statement
+        (identifier))))
+  (method_definition
+    (identifier)
+    (identifier)
+    (parameters)
+    (block
+      (return_statement
+        (method_call
+          (self_reference)
+          (identifier)
+          (argument_list)))))
+  (function_definition
+    (identifier)
+    (parameters)
+    (identifier)
+    (block
+      (return_statement))))
+
+================================================================================
+END CLASS terminator
+================================================================================
+
+CLASS Point
+   VAR x, y
+END CLASS
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (class_definition
+    (identifier)
+    (class_body
+      (class_var_declaration
+        (identifier)
+        (identifier)))))

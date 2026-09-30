@@ -914,6 +914,9 @@ static const CallCase CALL_CASES[] = {
     {"chialisp", "a.clsp",
      "(mod ()\n  (defun helper (x)\n    (* x 2))\n  (defun run ()\n    (helper 21))\n)\n", true,
      NULL},
+    {"harbour", "a.prg",
+     "FUNCTION Helper( x )\n   RETURN x * 2\n\nFUNCTION Run()\n   RETURN Helper( 21 )\n", true,
+     NULL},
     {"clojure", "a.clj", "(defn helper [] 42)\n\n(defn run [] (helper))\n", false,
      "lisp: call is a list_lit whose head is a sym_lit (not a field, not a first-child "
      "'identifier'); no lisp branch in extract_callee_name"},

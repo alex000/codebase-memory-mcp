@@ -888,6 +888,17 @@ TEST(lang_ext_scheme) {
     PASS();
 }
 
+TEST(lang_ext_harbour) {
+    ASSERT_EQ(cbm_language_for_extension(".prg"), CBM_LANG_HARBOUR);
+    ASSERT_EQ(cbm_language_for_extension(".PRG"), CBM_LANG_HARBOUR);
+    ASSERT_EQ(cbm_language_for_extension(".ch"), CBM_LANG_HARBOUR);
+    ASSERT_EQ(cbm_language_for_extension(".CH"), CBM_LANG_HARBOUR);
+    ASSERT_EQ(cbm_language_for_extension(".hb"), CBM_LANG_HARBOUR);
+    ASSERT_EQ(cbm_language_for_extension(".hbs"), CBM_LANG_HARBOUR);
+    ASSERT_STR_EQ(cbm_language_name(CBM_LANG_HARBOUR), "Harbour");
+    PASS();
+}
+
 TEST(lang_ext_chialisp) {
     ASSERT_EQ(cbm_language_for_extension(".clsp"), CBM_LANG_CHIALISP);
     ASSERT_EQ(cbm_language_for_extension(".clib"), CBM_LANG_CHIALISP);
@@ -1501,6 +1512,7 @@ SUITE(language) {
     RUN_TEST(lang_ext_nim);
     RUN_TEST(lang_ext_scheme);
     RUN_TEST(lang_ext_chialisp);
+    RUN_TEST(lang_ext_harbour);
     RUN_TEST(lang_ext_fennel);
     RUN_TEST(lang_ext_fish);
     RUN_TEST(lang_ext_awk);

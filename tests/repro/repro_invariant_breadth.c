@@ -10,7 +10,7 @@
  *
  * QUALITY_ANALYSIS.md gap #6 reports 27 languages failing this.  This file
  * is the "large breadth table" — one per-language case, table-driven, asserting
- * the invariant across 27 languages.
+ * the invariant across 28 languages.
  *
  * Fixture design rule:
  *   Each fixture defines exactly TWO functions: a callee (helper) and a caller
@@ -29,6 +29,7 @@
  *
  *   Added after the original snapshot:
  *     chialisp  (1 case, expected GREEN -- lisp-family scope attribution)
+ *     harbour   (1 case, expected GREEN -- end-marker-less FUNCTION bodies)
  *
  * Note: the "suspicious" group (r, julia, ...) from QUALITY_ANALYSIS may be
  * GREEN because the calls-breadth table (test_lang_contract.c) already shows
@@ -549,6 +550,21 @@ static const IBCase IB_CASES[] = {
          * compute_lisp_func_qn pushes a scope for the inner `(defun run ...)`
          * rather than stopping at the module. That is exactly what would
          * regress if the Chialisp def-head set drifted from the defs walk.
+         */
+        1, NULL
+    },
+
+    {
+        "harbour", "a.prg",
+        "FUNCTION Helper( x )\n"
+        "   RETURN x * 2\n"
+        "\n"
+        "FUNCTION Run()\n"
+        "   RETURN Helper( 21 )\n",
+        /*
+         * Harbour: EXPECTED-GREEN. A FUNCTION body has no end marker and runs
+         * to the next routine header, so the call is Function-sourced only if
+         * the grammar closes Helper's body at `FUNCTION Run()`.
          */
         1, NULL
     },

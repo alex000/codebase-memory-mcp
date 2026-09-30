@@ -1,0 +1,20 @@
+{
+  "name": "tree-sitter-harbour",
+  "version": "0.1.0",
+  "description": "Harbour (Clipper/xBase) grammar for tree-sitter",
+  "main": "bindings/node",
+  "keywords": ["tree-sitter", "harbour", "clipper", "xbase"],
+  "license": "MIT",
+  "dependencies": {
+    "nan": "^2.18.0"
+  },
+  "devDependencies": {
+    "tree-sitter-cli": "^0.25.0"
+  },
+  "tree-sitter": [
+    {
+      "scope": "source.harbour",
+      "file-types": ["prg", "hb", "hbs", "ch"]
+    }
+  ]
+}

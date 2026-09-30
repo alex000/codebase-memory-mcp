@@ -1,0 +1,26 @@
+================================================================================
+Comment styles
+================================================================================
+
+// line
+* star comment
+x := 1 && trailing
+/* block
+   comment */
+NOTE_ := 2
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (comment)
+  (comment)
+  (expression_statement
+    (assignment_expression
+      (identifier)
+      (number))
+    (comment))
+  (comment)
+  (expression_statement
+    (assignment_expression
+      (identifier)
+      (number))))

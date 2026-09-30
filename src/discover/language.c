@@ -614,6 +614,16 @@ static const ext_entry_t EXT_TABLE[] = {
     {".clib", CBM_LANG_CHIALISP},
     {".clinc", CBM_LANG_CHIALISP},
 
+    /* Harbour / Clipper — .prg sources, .ch preprocessor headers, .hb/.hbs
+     * scripts. The upper-case spellings are what DOS-era Clipper trees carry;
+     * extension lookup is case-sensitive, so they are listed explicitly. */
+    {".prg", CBM_LANG_HARBOUR},
+    {".PRG", CBM_LANG_HARBOUR},
+    {".ch", CBM_LANG_HARBOUR},
+    {".CH", CBM_LANG_HARBOUR},
+    {".hb", CBM_LANG_HARBOUR},
+    {".hbs", CBM_LANG_HARBOUR},
+
     /* Slang */
     {".slang", CBM_LANG_SLANG},
 
@@ -824,6 +834,7 @@ static const char *LANG_NAMES[CBM_LANG_COUNT] = {
     [CBM_LANG_NIM] = "Nim",
     [CBM_LANG_SCHEME] = "Scheme",
     [CBM_LANG_CHIALISP] = "Chialisp",
+    [CBM_LANG_HARBOUR] = "Harbour",
     [CBM_LANG_FENNEL] = "Fennel",
     [CBM_LANG_FISH] = "Fish",
     [CBM_LANG_AWK] = "AWK",

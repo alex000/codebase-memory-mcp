@@ -1,0 +1,16 @@
+{
+  "grammars": [
+    {
+      "name": "harbour",
+      "camelcase": "Harbour",
+      "scope": "source.harbour",
+      "path": ".",
+      "file-types": ["prg", "hb", "hbs", "ch"]
+    }
+  ],
+  "metadata": {
+    "version": "0.1.0",
+    "license": "MIT",
+    "description": "Harbour (Clipper/xBase) grammar for tree-sitter"
+  }
+}

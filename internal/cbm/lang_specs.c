@@ -81,6 +81,7 @@ extern const TSLanguage *tree_sitter_pascal(void);
 extern const TSLanguage *tree_sitter_d(void);
 extern const TSLanguage *tree_sitter_scheme(void);
 extern const TSLanguage *tree_sitter_chialisp(void);
+extern const TSLanguage *tree_sitter_harbour(void);
 extern const TSLanguage *tree_sitter_fennel(void);
 extern const TSLanguage *tree_sitter_fish(void);
 extern const TSLanguage *tree_sitter_awk(void);
@@ -1118,6 +1119,31 @@ static const char *chialisp_func_types[] = {"list", NULL};
 static const char *chialisp_call_types[] = {"list", NULL};
 static const char *chialisp_var_types[] = {"symbol", NULL};
 static const char *chialisp_module_types[] = {"source_file", NULL};
+
+// Harbour / Clipper: first-party grammar (tools/tree-sitter-harbour). Methods are
+// implemented outside the class body (`METHOD x() CLASS Y`), so method_definition
+// is a function type here and extract_defs.c promotes it to a Method of its
+// owner class; the in-class `METHOD x()` lines are declarations, not defs.
+static const char *harbour_func_types[] = {"function_definition", "method_definition", NULL};
+static const char *harbour_class_types[] = {"class_definition", NULL};
+static const char *harbour_field_types[] = {"class_var_declaration", NULL};
+static const char *harbour_module_types[] = {"source_file", NULL};
+static const char *harbour_call_types[] = {"call_expression", "method_call", "do_statement", NULL};
+static const char *harbour_import_types[] = {"preproc_include", NULL};
+static const char *harbour_branch_types[] = {"if_statement",
+                                             "elseif_clause",
+                                             "case_clause",
+                                             "switch_case",
+                                             "while_statement",
+                                             "for_statement",
+                                             "for_each_statement",
+                                             "recover_clause",
+                                             "catch_clause",
+                                             "if_expression",
+                                             NULL};
+static const char *harbour_var_types[] = {"static_declaration", "memvar_declaration", NULL};
+static const char *harbour_assign_types[] = {"assignment_expression", NULL};
+static const char *harbour_throw_types[] = {"break_statement", NULL};
 static const char *fennel_func_types[] = {"fn", "lambda", "hashfn", NULL};
 static const char *fennel_call_types[] = {"list", NULL};
 static const char *fennel_branch_types[] = {"each", "for", "match", NULL};
@@ -2187,6 +2213,13 @@ static const CBMLangSpec lang_specs[CBM_LANG_COUNT] = {
                            chialisp_module_types, chialisp_call_types, empty_types, empty_types,
                            empty_types, chialisp_var_types, empty_types, empty_types, NULL,
                            empty_types, NULL, NULL, tree_sitter_chialisp, NULL},
+
+    // CBM_LANG_HARBOUR — Harbour / Clipper xBase. First-party grammar (MIT).
+    [CBM_LANG_HARBOUR] = {CBM_LANG_HARBOUR, harbour_func_types, harbour_class_types,
+                          harbour_field_types, harbour_module_types, harbour_call_types,
+                          harbour_import_types, empty_types, harbour_branch_types,
+                          harbour_var_types, harbour_assign_types, harbour_throw_types, NULL,
+                          empty_types, NULL, NULL, tree_sitter_harbour, NULL},
 
     // CBM_LANG_FENNEL
     [CBM_LANG_FENNEL] = {CBM_LANG_FENNEL, fennel_func_types, empty_types, empty_types,

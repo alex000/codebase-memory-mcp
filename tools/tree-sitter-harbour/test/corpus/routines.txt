@@ -1,0 +1,168 @@
+================================================================================
+Function with parameters and return
+================================================================================
+
+FUNCTION Add( a, b )
+   RETURN a + b
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameters
+      (parameter
+        (identifier))
+      (parameter
+        (identifier)))
+    (block
+      (return_statement
+        (binary_expression
+          (identifier)
+          (identifier))))))
+
+================================================================================
+Abbreviated lower-case keywords
+================================================================================
+
+func add( a, b )
+   loca c := a
+   retu c + b
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameters
+      (parameter
+        (identifier))
+      (parameter
+        (identifier)))
+    (block
+      (local_declaration
+        (variable_declarator
+          (identifier)
+          (identifier)))
+      (return_statement
+        (binary_expression
+          (identifier)
+          (identifier))))))
+
+================================================================================
+Static function after a body with a static declaration
+================================================================================
+
+PROCEDURE Main()
+   STATIC s_n := 0
+   Helper()
+   RETURN
+
+STATIC FUNCTION Helper()
+   RETURN NIL
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameters)
+    (block
+      (static_declaration
+        (variable_declarator
+          (identifier)
+          (number)))
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list)))
+      (return_statement)))
+  (function_definition
+    (identifier)
+    (parameters)
+    (block
+      (return_statement
+        (nil)))))
+
+================================================================================
+Init and exit procedures
+================================================================================
+
+INIT PROCEDURE Start()
+   RETURN
+
+EXIT PROCEDURE Stop()
+   RETURN
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameters)
+    (block
+      (return_statement)))
+  (function_definition
+    (identifier)
+    (parameters)
+    (block
+      (return_statement))))
+
+================================================================================
+Last line without a trailing newline
+================================================================================
+
+FUNCTION f()
+   RETURN 1
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameters)
+    (block
+      (return_statement
+        (number)))))
+
+================================================================================
+Top-level code before the first routine
+================================================================================
+
+? "hello"
+Quit()
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (print_statement
+    (string))
+  (expression_statement
+    (call_expression
+      (identifier)
+      (argument_list))))
+
+================================================================================
+Variadic and typed parameters
+================================================================================
+
+FUNCTION f( cName AS STRING, @nOut, ... )
+   RETURN g( ... )
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameters
+      (parameter
+        (identifier)
+        (as_type
+          (identifier)))
+      (parameter
+        (identifier)))
+    (block
+      (return_statement
+        (call_expression
+          (identifier)
+          (argument_list
+            (variadic)))))))

@@ -1,0 +1,108 @@
+================================================================================
+Include and define
+================================================================================
+
+#include "hbclass.ch"
+#define MAX_ITEMS  100
+#define SIG ( ;
+   1 + ;
+   2 )
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (preproc_include
+    (string))
+  (preproc_define
+    (identifier)
+    (preproc_arg))
+  (preproc_define
+    (identifier)
+    (preproc_arg)))
+
+================================================================================
+Conditional keeps the first branch
+================================================================================
+
+#ifdef __XHARBOUR__
+   IF a .OR. b
+#else
+   IF b
+#endif
+      Foo()
+   ENDIF
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (preproc_directive)
+  (if_statement
+    (binary_expression
+      (identifier)
+      (identifier))
+    (preproc_skipped)
+    (block
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list))))))
+
+================================================================================
+If 0 is skipped
+================================================================================
+
+#if 0
+   this is not code (
+#endif
+Foo()
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (preproc_skipped)
+  (expression_statement
+    (call_expression
+      (identifier)
+      (argument_list))))
+
+================================================================================
+Command directives are extras
+================================================================================
+
+#xcommand DEFAULT <v> TO <x> => IF <v> == NIL ; <v> := <x> ; END
+#require "hbwin"
+x := 1
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (preproc_directive)
+  (preproc_directive)
+  (expression_statement
+    (assignment_expression
+      (identifier)
+      (number))))
+
+================================================================================
+Pragma dump
+================================================================================
+
+FUNCTION f()
+   RETURN c()
+#pragma BEGINDUMP
+#include "hbapi.h"
+HB_FUNC( C ) { hb_retni( 1 ); }
+#pragma ENDDUMP
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (function_definition
+    (identifier)
+    (parameters)
+    (block
+      (return_statement
+        (call_expression
+          (identifier)
+          (argument_list)))
+      (dump_block))))

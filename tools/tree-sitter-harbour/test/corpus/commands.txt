@@ -1,0 +1,74 @@
+================================================================================
+xBase commands
+================================================================================
+
+USE (cFile) ALIAS cust NEW SHARED
+USE test.dbf
+SET DELETED ON
+REPLACE total WITH total + Calc( x )
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (command_statement
+    (identifier)
+    (parenthesized_expression
+      (identifier))
+    (identifier)
+    (identifier)
+    (identifier)
+    (identifier))
+  (command_statement
+    (identifier)
+    (identifier)
+    (file_extension))
+  (command_statement
+    (identifier)
+    (identifier)
+    (identifier))
+  (command_statement
+    (identifier)
+    (identifier)
+    (identifier)
+    (identifier)
+    (call_expression
+      (identifier)
+      (argument_list
+        (identifier)))))
+
+================================================================================
+Screen commands
+================================================================================
+
+@ 10, 5 SAY "Name:" GET cName PICTURE "@!"
+@ MaxRow() - 1, 0 SAY Foo()
+? "a", b
+?? c
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (command_statement
+    (number)
+    (number)
+    (identifier)
+    (string)
+    (identifier)
+    (identifier)
+    (identifier)
+    (string))
+  (command_statement
+    (call_expression
+      (identifier)
+      (argument_list))
+    (number)
+    (number)
+    (identifier)
+    (call_expression
+      (identifier)
+      (argument_list)))
+  (print_statement
+    (string)
+    (identifier))
+  (print_statement
+    (identifier)))

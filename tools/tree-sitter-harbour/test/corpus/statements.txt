@@ -1,0 +1,345 @@
+================================================================================
+Declarations
+================================================================================
+
+LOCAL a := 1, b[ 10 ], c AS NUMERIC
+PRIVATE cVar, &cMacro
+PUBLIC gX := 2
+MEMVAR m1
+FIELD name, age IN cust
+PARAMETERS p1, p2
+REQUEST DBFCDX, DBFNTX
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (local_declaration
+    (variable_declarator
+      (identifier)
+      (number))
+    (variable_declarator
+      (identifier)
+      (dimensions
+        (number)))
+    (variable_declarator
+      (identifier)
+      (as_type
+        (identifier))))
+  (memvar_declaration
+    (variable_declarator
+      (identifier))
+    (macro_variable))
+  (memvar_declaration
+    (variable_declarator
+      (identifier)
+      (number)))
+  (memvar_declaration
+    (variable_declarator
+      (identifier)))
+  (field_declaration
+    (variable_declarator
+      (identifier))
+    (variable_declarator
+      (identifier))
+    (identifier))
+  (parameters_declaration
+    (variable_declarator
+      (identifier))
+    (variable_declarator
+      (identifier)))
+  (request_declaration
+    (identifier)
+    (identifier)))
+
+================================================================================
+If with elseif and else
+================================================================================
+
+IF a > 1 .AND. ! b
+   x := 1
+ELSEIF a == 1
+   x := 2
+ELSE
+   x := 3
+ENDIF
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (if_statement
+    (binary_expression
+      (binary_expression
+        (identifier)
+        (number))
+      (unary_expression
+        (identifier)))
+    (block
+      (expression_statement
+        (assignment_expression
+          (identifier)
+          (number))))
+    (elseif_clause
+      (binary_expression
+        (identifier)
+        (number))
+      (block
+        (expression_statement
+          (assignment_expression
+            (identifier)
+            (number)))))
+    (else_clause
+      (block
+        (expression_statement
+          (assignment_expression
+            (identifier)
+            (number)))))))
+
+================================================================================
+Do case
+================================================================================
+
+DO CASE
+CASE n == 1
+   Foo()
+OTHERWISE
+   Bar()
+ENDCASE
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (do_case_statement
+    (case_clause
+      (binary_expression
+        (identifier)
+        (number))
+      (block
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list)))))
+    (otherwise_clause
+      (block
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list)))))))
+
+================================================================================
+Loops
+================================================================================
+
+FOR i := 1 TO 10 STEP 2
+   LOOP
+NEXT i
+FOR EACH x IN aList DESCEND
+   EXIT
+NEXT
+DO WHILE ! Eof()
+   dbSkip()
+ENDDO
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (for_statement
+    (identifier)
+    (number)
+    (number)
+    (number)
+    (block
+      (loop_statement))
+    (identifier))
+  (for_each_statement
+    (identifier)
+    (identifier)
+    (block
+      (exit_statement)))
+  (while_statement
+    (unary_expression
+      (call_expression
+        (identifier)
+        (argument_list)))
+    (block
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list))))))
+
+================================================================================
+Switch
+================================================================================
+
+SWITCH nKey
+CASE 1
+   EXIT
+OTHERWISE
+   Beep()
+ENDSWITCH
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (switch_statement
+    (identifier)
+    (switch_case
+      (number)
+      (block
+        (exit_statement)))
+    (otherwise_clause
+      (block
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list)))))))
+
+================================================================================
+Begin sequence
+================================================================================
+
+BEGIN SEQUENCE WITH {| e | Break( e ) }
+   Risky()
+RECOVER USING oErr
+   Log( oErr:description )
+ALWAYS
+   Cleanup()
+END SEQUENCE
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (begin_sequence_statement
+    (code_block
+      (block_parameters
+        (parameter
+          (identifier)))
+      (call_expression
+        (identifier)
+        (argument_list
+          (identifier))))
+    (block
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list))))
+    (recover_clause
+      (identifier)
+      (block
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list
+              (send_expression
+                (identifier)
+                (identifier)))))))
+    (always_clause
+      (block
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list)))))))
+
+================================================================================
+Try catch
+================================================================================
+
+TRY
+   Risky()
+CATCH oErr
+   Log( oErr )
+FINALLY
+   Cleanup()
+END
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (try_statement
+    (block
+      (expression_statement
+        (call_expression
+          (identifier)
+          (argument_list))))
+    (catch_clause
+      (identifier)
+      (block
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list
+              (identifier))))))
+    (finally_clause
+      (block
+        (expression_statement
+          (call_expression
+            (identifier)
+            (argument_list)))))))
+
+================================================================================
+With object
+================================================================================
+
+WITH OBJECT oWin
+   :title := "x"
+   :show()
+END WITH
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (with_object_statement
+    (identifier)
+    (block
+      (expression_statement
+        (assignment_expression
+          (self_send)
+          (self_send
+            (identifier))
+          (string)))
+      (expression_statement
+        (method_call)
+        (method_call
+          (identifier))
+        (method_call)))))
+
+================================================================================
+Do with arguments
+================================================================================
+
+DO Report WITH cName, 10
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (do_statement
+    (identifier)
+    (do_arguments
+      (identifier)
+      (number))))
+
+================================================================================
+Statement separator and line continuation
+================================================================================
+
+a := 1; b := 2
+c := a + ;
+   b
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (identifier)
+      (number)))
+  (expression_statement
+    (assignment_expression
+      (identifier)
+      (number)))
+  (expression_statement
+    (assignment_expression
+      (identifier)
+      (binary_expression
+        (identifier)
+        (line_continuation)
+        (identifier)))))

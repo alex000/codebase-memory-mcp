@@ -186,6 +186,24 @@ const GrammarCase CBM_GRAMMAR_CASES[] = {
      ")\n",
      3,
      {"square", "TWO", "twice", NULL}},
+    /* Harbour: methods are implemented at file scope (`METHOD x() CLASS y`) and
+     * a FUNCTION body runs to the next routine header — the fixture needs a
+     * class, an out-of-line method and a trailing function to exercise both. */
+    {"harbour",
+     CBM_LANG_HARBOUR,
+     "a.prg",
+     "CREATE CLASS TFoo\n"
+     "   VAR nX INIT 0\n"
+     "   METHOD Show()\n"
+     "ENDCLASS\n"
+     "\n"
+     "METHOD Show() CLASS TFoo\n"
+     "   RETURN Helper( ::nX )\n"
+     "\n"
+     "STATIC FUNCTION Helper( n )\n"
+     "   RETURN n\n",
+     3,
+     {"TFoo", "Show", "Helper", NULL}},
     {"slang", CBM_LANG_SLANG, "a.slang", "void foo() {}\nvoid bar() {}\n", 1, {NULL}},
     {"squirrel", CBM_LANG_SQUIRREL, "a.nut", "function foo() {}\nfunction bar() {}\n", 1, {NULL}},
     {"starlark",

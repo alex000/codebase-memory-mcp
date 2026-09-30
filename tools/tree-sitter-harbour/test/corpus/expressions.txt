@@ -1,0 +1,256 @@
+================================================================================
+Calls and sends
+================================================================================
+
+x := Foo( 1, , 3 ) + oObj:Bar( 2 ):baz + ::nX
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (identifier)
+      (binary_expression
+        (binary_expression
+          (call_expression
+            (identifier)
+            (argument_list
+              (number)
+              (number)))
+          (send_expression
+            (method_call
+              (identifier)
+              (identifier)
+              (argument_list
+                (number)))
+            (identifier)))
+        (self_send
+          (self_reference)
+          (identifier))))))
+
+================================================================================
+Literals
+================================================================================
+
+x := { 1, 1.5, .5, 0x1F, "s", 's', e"a\"b", [br], 0d20240131, .T., .f., NIL }
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (identifier)
+      (array
+        (number)
+        (number)
+        (number)
+        (number)
+        (string)
+        (string)
+        (string)
+        (bracket_string)
+        (date)
+        (logical)
+        (logical)
+        (nil)))))
+
+================================================================================
+Hash and code blocks
+================================================================================
+
+h := { "a" => 1, "b" => }
+e := { => }
+b := {|| Nil }
+b2 := {| a, b | a + b, Foo( a ) }
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (identifier)
+      (hash
+        (hash_pair
+          (string)
+          (number))
+        (hash_pair
+          (string)))))
+  (expression_statement
+    (assignment_expression
+      (identifier)
+      (hash)))
+  (expression_statement
+    (assignment_expression
+      (identifier)
+      (code_block
+        (nil))))
+  (expression_statement
+    (assignment_expression
+      (identifier)
+      (code_block
+        (block_parameters
+          (parameter
+            (identifier))
+          (parameter
+            (identifier)))
+        (binary_expression
+          (identifier)
+          (identifier))
+        (call_expression
+          (identifier)
+          (argument_list
+            (identifier)))))))
+
+================================================================================
+Code block with statements
+================================================================================
+
+b := {| x |
+   LOCAL y := x * 2
+   RETURN y
+}
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (identifier)
+      (code_block
+        (block_parameters
+          (parameter
+            (identifier)))
+        (block
+          (local_declaration
+            (variable_declarator
+              (identifier)
+              (binary_expression
+                (identifier)
+                (number))))
+          (return_statement
+            (identifier)))))))
+
+================================================================================
+Aliases and macros
+================================================================================
+
+x := cust->name + (nArea)->( RecNo() ) + FIELD->age + &cVar + &( "a" + "b" )
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (identifier)
+      (binary_expression
+        (binary_expression
+          (binary_expression
+            (binary_expression
+              (alias_expression
+                (identifier)
+                (identifier))
+              (alias_expression
+                (parenthesized_expression
+                  (identifier))
+                (parenthesized_expression
+                  (call_expression
+                    (identifier)
+                    (argument_list)))))
+            (alias_expression
+              (identifier)
+              (identifier)))
+          (macro_variable))
+        (macro_expression
+          (binary_expression
+            (string)
+            (string)))))))
+
+================================================================================
+References
+================================================================================
+
+Foo( @nOut, @Bar() )
+bFunc := @Baz()
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (call_expression
+      (identifier)
+      (argument_list
+        (reference
+          (identifier))
+        (function_reference
+          (identifier)))))
+  (expression_statement
+    (assignment_expression
+      (identifier)
+      (function_reference
+        (identifier)))))
+
+================================================================================
+Inline if and operators
+================================================================================
+
+x := IIF( a, b, c ) + IF( a >= b .OR. c $ d, 1, 2 ) ^ 2
+n++
+--n
+x += 2
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (identifier)
+      (binary_expression
+        (call_expression
+          (identifier)
+          (argument_list
+            (identifier)
+            (identifier)
+            (identifier)))
+        (binary_expression
+          (if_expression
+            (binary_expression
+              (binary_expression
+                (identifier)
+                (identifier))
+              (binary_expression
+                (identifier)
+                (identifier)))
+            (number)
+            (number))
+          (number)))))
+  (expression_statement
+    (update_expression
+      (identifier)))
+  (expression_statement
+    (update_expression
+      (identifier)))
+  (expression_statement
+    (assignment_expression
+      (identifier)
+      (number))))
+
+================================================================================
+Indexing
+================================================================================
+
+a[ 1 ] := b[ 1, 2 ][ 3 ]
+
+--------------------------------------------------------------------------------
+
+(source_file
+  (expression_statement
+    (assignment_expression
+      (index_expression
+        (identifier)
+        (number))
+      (index_expression
+        (index_expression
+          (identifier)
+          (number)
+          (number))
+        (number)))))

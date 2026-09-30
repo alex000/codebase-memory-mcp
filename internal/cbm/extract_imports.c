@@ -2983,6 +2983,7 @@ void cbm_extract_imports(CBMExtractCtx *ctx) {
     case CBM_LANG_C:
     case CBM_LANG_CPP:
     case CBM_LANG_OBJC:
+    case CBM_LANG_HARBOUR: // #include "x.ch" — same preproc_include/path shape
         parse_c_imports(ctx);
         break;
     case CBM_LANG_PHP:

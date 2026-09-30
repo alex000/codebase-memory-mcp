@@ -574,6 +574,70 @@ char *cbm_cpp_out_of_line_parent_class(CBMArena *a, TSNode node, const char *sou
     return (text && text[0]) ? text : NULL;
 }
 
+// ASCII case-insensitive equality. Harbour identifiers are case-insensitive.
+static bool harbour_name_eq(const char *x, const char *y) {
+    for (; *x && *y; x++, y++) {
+        char cx = (*x >= 'A' && *x <= 'Z') ? (char)(*x + ('a' - 'A')) : *x;
+        char cy = (*y >= 'A' && *y <= 'Z') ? (char)(*y + ('a' - 'A')) : *y;
+        if (cx != cy) {
+            return false;
+        }
+    }
+    return *x == *y;
+}
+
+// Harbour: a method is implemented outside its class declaration — hbclass.ch's
+// `METHOD x() CLASS Y`, Xbase++'s `METHOD Y:x()`, or `PROCEDURE x() CLASS Y`. A
+// bare `METHOD x()` belongs to the nearest class declared above it, which is how
+// hbclass.ch resolves it. Names are case-insensitive (`CLASS TGET` implements
+// `CLASS TGet`), so when the file declares the owner its declared spelling is
+// returned: the method QN must be built on the same string as the class node's.
+char *cbm_harbour_method_owner(CBMArena *a, TSNode node, const char *source) {
+    const char *kind = ts_node_type(node);
+    bool is_method = strcmp(kind, "method_definition") == 0;
+    if (!is_method && strcmp(kind, "function_definition") != 0) {
+        return NULL;
+    }
+    TSNode cls = ts_node_child_by_field_name(node, TS_FIELD("class"));
+    char *owner = ts_node_is_null(cls) ? NULL : cbm_node_text(a, cls, source);
+    if (owner && !owner[0]) {
+        owner = NULL;
+    }
+    if (!is_method && !owner) {
+        return NULL; // a plain FUNCTION / PROCEDURE
+    }
+    TSNode parent = ts_node_parent(node);
+    if (ts_node_is_null(parent)) {
+        return owner;
+    }
+    char *nearest = NULL;
+    uint32_t at = ts_node_start_byte(node);
+    TSTreeCursor cursor = ts_tree_cursor_new(parent);
+    if (ts_tree_cursor_goto_first_child(&cursor)) {
+        do {
+            TSNode sib = ts_tree_cursor_current_node(&cursor);
+            if (strcmp(ts_node_type(sib), "class_definition") != 0) {
+                continue;
+            }
+            TSNode nm = ts_node_child_by_field_name(sib, TS_FIELD("name"));
+            char *declared = ts_node_is_null(nm) ? NULL : cbm_node_text(a, nm, source);
+            if (!declared || !declared[0]) {
+                continue;
+            }
+            if (owner) {
+                if (harbour_name_eq(declared, owner)) {
+                    owner = declared;
+                    break;
+                }
+            } else if (ts_node_start_byte(sib) < at) {
+                nearest = declared;
+            }
+        } while (ts_tree_cursor_goto_next_sibling(&cursor));
+    }
+    ts_tree_cursor_delete(&cursor);
+    return owner ? owner : nearest;
+}
+
 // R: resolve function_definition name from parent binary_operator lhs.
 static TSNode resolve_r_func_name(TSNode node) {
     TSNode parent = ts_node_parent(node);
@@ -2601,6 +2665,33 @@ static const char **extract_base_classes(CBMArena *a, TSNode node, const char *s
         }
         return NULL;
     }
+    // Harbour: `CLASS X FROM A, B` / `INHERIT A, B` — one superclass_list child
+    // holding the base names as identifiers.
+    if (lang == CBM_LANG_HARBOUR) {
+        TSNode list = ts_node_child_by_field_name(node, TS_FIELD("superclasses"));
+        if (ts_node_is_null(list)) {
+            return NULL;
+        }
+        const char **result =
+            (const char **)cbm_arena_alloc(a, (MAX_BASES + 1) * sizeof(const char *));
+        if (!result) {
+            return NULL;
+        }
+        int base_count = 0;
+        uint32_t nc = ts_node_named_child_count(list);
+        for (uint32_t i = 0; i < nc && base_count < MAX_BASES_MINUS_1; i++) {
+            TSNode ch = ts_node_named_child(list, i);
+            if (strcmp(ts_node_type(ch), "identifier") != 0) {
+                continue;
+            }
+            char *base = cbm_node_text(a, ch, source);
+            if (base && base[0]) {
+                result[base_count++] = base;
+            }
+        }
+        result[base_count] = NULL;
+        return base_count > 0 ? result : NULL;
+    }
     // Languages whose heritage is not exposed via a tree-sitter field need
     // dedicated walkers; the generic field/keyword path mis-captures them.
     if (lang == CBM_LANG_TYPESCRIPT || lang == CBM_LANG_TSX || lang == CBM_LANG_ARKTS) {
@@ -3933,6 +4024,18 @@ static void extract_func_def(CBMExtractCtx *ctx, TSNode node, const CBMLangSpec 
         char *scope_name = cbm_cpp_out_of_line_parent_class(a, node, ctx->source);
         if (scope_name && scope_name[0]) {
             const char *class_qn = cbm_fqn_compute(a, ctx->project, ctx->rel_path, scope_name);
+            def.qualified_name = cbm_arena_sprintf(a, "%s.%s", class_qn, name);
+            def.label = "Method";
+            def.parent_class = class_qn;
+        }
+    }
+
+    // Harbour: `METHOD x() CLASS Y` is implemented at file scope; promote it to a
+    // Method of Y, QN-scoped to the class node exactly as the C++ path above.
+    if (ctx->language == CBM_LANG_HARBOUR) {
+        char *owner = cbm_harbour_method_owner(a, node, ctx->source);
+        if (owner && owner[0]) {
+            const char *class_qn = cbm_fqn_compute(a, ctx->project, ctx->rel_path, owner);
             def.qualified_name = cbm_arena_sprintf(a, "%s.%s", class_qn, name);
             def.label = "Method";
             def.parent_class = class_qn;
@@ -6416,6 +6519,22 @@ static void extract_var_names(CBMExtractCtx *ctx, TSNode node, const CBMLangSpec
             }
         }
         return;
+    /* Harbour: `STATIC a := 1, b` / `PUBLIC x, y` declare several names, each a
+     * variable_declarator with a `name` field. */
+    case CBM_LANG_HARBOUR: {
+        uint32_t hc = ts_node_named_child_count(node);
+        for (uint32_t i = 0; i < hc; i++) {
+            TSNode d = ts_node_named_child(node, i);
+            if (strcmp(ts_node_type(d), "variable_declarator") != 0) {
+                continue;
+            }
+            TSNode nm = ts_node_child_by_field_name(d, TS_FIELD("name"));
+            if (!ts_node_is_null(nm)) {
+                push_var_def(ctx, cbm_node_text(a, nm, ctx->source), d);
+            }
+        }
+        return;
+    }
     /* .properties: `key=value` is a `property` node whose name is the `key`
      * child (a bare `key` kind, not an identifier or a `name` field), so the
      * default fallback misses it. */
@@ -6889,6 +7008,35 @@ static void extract_class_fields(CBMExtractCtx *ctx, TSNode class_node, const ch
         }
 
         if (is_func_ptr_field(child)) {
+            continue;
+        }
+
+        /* Harbour: `VAR a, b INIT 0` declares several instance variables; every
+         * `name` field child is one Field of the class. */
+        if (ctx->language == CBM_LANG_HARBOUR) {
+            uint32_t hc = ts_node_child_count(child);
+            for (uint32_t k = 0; k < hc; k++) {
+                const char *fname = ts_node_field_name_for_child(child, k);
+                if (!fname || strcmp(fname, "name") != 0) {
+                    continue;
+                }
+                TSNode nm = ts_node_child(child, k);
+                char *fn = cbm_node_text(a, nm, ctx->source);
+                if (!fn || !fn[0]) {
+                    continue;
+                }
+                CBMDefinition fdef;
+                memset(&fdef, 0, sizeof(fdef));
+                fdef.name = fn;
+                fdef.qualified_name = cbm_arena_sprintf(a, "%s.%s", class_qn, fn);
+                fdef.label = "Field";
+                fdef.file_path = ctx->rel_path;
+                fdef.parent_class = class_qn;
+                fdef.start_line = ts_node_start_point(child).row + TS_LINE_OFFSET;
+                fdef.end_line = ts_node_end_point(child).row + TS_LINE_OFFSET;
+                fdef.is_exported = cbm_is_exported(fn, ctx->language);
+                cbm_defs_push(&ctx->result->defs, a, fdef);
+            }
             continue;
         }
 
