@@ -1522,6 +1522,8 @@ TEST(plsql_create_type_as_object_limitation) {
  * the extractor depends on and that no other language shares: routine bodies
  * with no end marker, methods implemented outside their class, case-insensitive
  * names, and preprocessor conditionals whose branches each open a block. */
+static int count_calls_in_func(CBMFileResult *r, const char *callee, const char *func);
+
 static const CBMDefinition *harbour_def(CBMFileResult *r, const char *label, const char *name) {
     for (int i = 0; i < r->defs.count; i++) {
         if (strcmp(r->defs.items[i].label, label) == 0 && strcmp(r->defs.items[i].name, name) == 0)

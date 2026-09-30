@@ -1444,6 +1444,7 @@ static const char **get_module_parents(CBMLanguage lang) {
         return module_parents_matlab;
     case CBM_LANG_LEAN:
         return module_parents_zig;
+    case CBM_LANG_HARBOUR: // file-scope STATIC / PUBLIC declarations
     case CBM_LANG_FORM:
         return module_parents_form;
     case CBM_LANG_MAGMA:
